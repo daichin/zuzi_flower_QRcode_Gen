@@ -114,50 +114,60 @@ def generate_html(config_file):
         qr_base64 = create_qr_with_logo(url, logo_image, (qr_width, qr_height), logo_size)
         qr_codes.append(qr_base64)
     
-    # Generate HTML with A4 size and fixed QR code dimensions
-    html = f"""
+    # Calculate how many QR codes can fit on one page
+    qr_codes_per_page = rows * cols
+    
+    # Calculate total pages needed
+    total_pages = math.ceil(len(qr_codes) / qr_codes_per_page)
+    
+    # Generate HTML with multiple A4 pages
+    html = """
     <!DOCTYPE html>
     <html>
     <head>
         <style>
-            @page {{
+            @page {
                 size: A4;
                 margin: 0;
-            }}
-            body {{
+            }
+            body {
                 margin: 0;
                 padding: 0;
-            }}
-            .page {{
+            }
+            .page {
                 width: 210mm;
                 height: 297mm;
                 padding: 1mm;
                 box-sizing: border-box;
                 background: white;
-            }}
-            table {{
+                page-break-after: always;
+            }
+            .page:last-child {
+                page-break-after: auto;
+            }
+            table {
                 border-collapse: collapse;
                 width: calc(100% - 20px);
                 height: calc(100% - 20px);
                 margin: 10px;
-            }}
-            td {{
+            }
+            td {
                 border: 1px solid #ddd;
                 padding: 0;
                 text-align: center;
                 vertical-align: middle;
                 width: {qr_width}px;
                 height: {qr_height}px;
-            }}
-            img {{
+            }
+            img {
                 width: {qr_width}px !important;
                 height: {qr_height}px !important;
                 display: block;
                 margin: 0;
                 padding: 0;
-            }}
-            @media print {{
-                .page {{
+            }
+            @media print {
+                .page {
                     margin: 0;
                     border: initial;
                     border-radius: initial;
@@ -165,35 +175,36 @@ def generate_html(config_file):
                     min-height: initial;
                     box-shadow: initial;
                     background: initial;
-                    page-break-after: always;
-                }}
-            }}
+                }
+            }
         </style>
     </head>
     <body>
-        <div class="page">
-            <table>
     """
     
-    # Add QR codes to table
-    qr_index = 0
-    for i in range(rows):
-        html += "<tr>"
-        for j in range(cols):
-            if qr_index < len(qr_codes):
-                html += f"""
-                    <td>
-                        <img src="data:image/png;base64,{qr_codes[qr_index]}" alt="QR Code" width="{qr_width}" height="{qr_height}">
-                    </td>
-                """
-                qr_index += 1
-            else:
-                html += f'<td style="width:{qr_width}px;height:{qr_height}px"></td>'
-        html += "</tr>"
+    # Generate pages
+    for page in range(total_pages):
+        html += '<div class="page"><table>'
+        start_index = page * qr_codes_per_page
+        
+        # Add QR codes to table for this page
+        for i in range(rows):
+            html += "<tr>"
+            for j in range(cols):
+                qr_index = start_index + (i * cols + j)
+                if qr_index < len(qr_codes):
+                    html += f"""
+                        <td>
+                            <img src="data:image/png;base64,{qr_codes[qr_index]}" alt="QR Code" width="{qr_width}" height="{qr_height}">
+                        </td>
+                    """
+                else:
+                    html += f'<td style="width:{qr_width}px;height:{qr_height}px"></td>'
+            html += "</tr>"
+        
+        html += "</table></div>"
     
     html += """
-            </table>
-        </div>
     </body>
     </html>
     """
