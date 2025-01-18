@@ -5,11 +5,29 @@
   "logox": 140,
   "logoy": 140,
   "image_urls": [
-	"https://images2.imgbox.com/ca/87/b4zKqZd2_o.jpg",
-	"https://images2.imgbox.com/d5/5d/XAeaZdX1_o.jpg",
-	"https://images2.imgbox.com/f4/eb/10QZQQiM_o.jpg",
-	"https://images2.imgbox.com/dc/02/bxE6WivP_o.jpg",
-	"https://images2.imgbox.com/b2/86/IaZhSJCG_o.jpg",
-	"https://images2.imgbox.com/26/dd/UplCM08E_o.jpg"
+    {
+      "name": "No.01",
+      "url": "https://images2.imgbox.com/ca/87/b4zKqZd2_o.jpg"
+    },
+    {
+      "name": "No.02",
+      "url": "https://images2.imgbox.com/d5/5d/XAeaZdX1_o.jpg"
+    },
+    {
+      "name": "No.03",
+      "url": "https://images2.imgbox.com/f4/eb/10QZQQiM_o.jpg"
+    },
+    {
+      "name": "No.04",
+      "url": "https://images2.imgbox.com/dc/02/bxE6WivP_o.jpg"
+    },
+    {
+      "name": "No.05",
+      "url": "https://images2.imgbox.com/b2/86/IaZhSJCG_o.jpg"
+    },
+    {
+      "name": "No.06",
+      "url": "https://images2.imgbox.com/26/dd/UplCM08E_o.jpg"
+    }
   ]
 }

@@ -9,6 +9,7 @@ import base64
 import math
 import requests
 from urllib.parse import urlparse, parse_qs
+import csv
 
 def get_file_id_from_google_drive_url(url):
     """Extract file ID from Google Drive URL"""
@@ -110,9 +111,11 @@ def generate_html(config_file):
     
     # Generate QR codes for all URLs
     qr_codes = []
-    for url in config['image_urls']:
-        qr_base64 = create_qr_with_logo(url, logo_image, (qr_width, qr_height), logo_size)
+    names = []
+    for item in config['image_urls']:
+        qr_base64 = create_qr_with_logo(item['url'], logo_image, (qr_width, qr_height), logo_size)
         qr_codes.append(qr_base64)
+        names.append(item['name'])
     
     # Calculate how many QR codes can fit on one page
     qr_codes_per_page = rows * cols
@@ -157,7 +160,12 @@ def generate_html(config_file):
                 text-align: center;
                 vertical-align: middle;
                 width: {qr_width}px;
-                height: {qr_height}px;
+                height: calc({qr_height}px + 20px);
+            }
+            .title {
+                font-size: 12px;
+                margin-top: 5px;
+                display: block;
             }
             img {
                 width: {qr_width}px !important;
@@ -195,6 +203,7 @@ def generate_html(config_file):
                 if qr_index < len(qr_codes):
                     html += f"""
                         <td>
+                            <span class="title">{names[qr_index]}</span>
                             <img src="data:image/png;base64,{qr_codes[qr_index]}" alt="QR Code" width="{qr_width}" height="{qr_height}">
                         </td>
                     """
@@ -213,5 +222,28 @@ def generate_html(config_file):
     with open('qr_grid.html', 'w') as f:
         f.write(html)
 
+def update_json_from_csv(csv_file, json_file):
+    """Update image_urls in JSON file from CSV data"""
+    # Read CSV file
+    with open(csv_file, 'r', encoding='utf-8-sig') as f:  # Changed to utf-8-sig to handle BOM
+        csv_reader = csv.DictReader(f)
+        # Convert fieldnames to lowercase and remove any BOM
+        fieldnames = [field.lower().replace('\ufeff', '') for field in csv_reader.fieldnames]
+        csv_reader.fieldnames = fieldnames
+        image_urls = [{"name": row["name"].strip(), "url": row["url"].strip()} 
+                     for row in csv_reader]
+    
+    # Read existing JSON
+    with open(json_file, 'r') as f:
+        config = json.load(f)
+    
+    # Update image_urls
+    config['image_urls'] = image_urls
+    
+    # Write back to JSON file
+    with open(json_file, 'w') as f:
+        json.dump(config, f, indent=2)
+
 if __name__ == "__main__":
+    update_json_from_csv('images.csv', 'urls.json')
     generate_html('urls.json') 
