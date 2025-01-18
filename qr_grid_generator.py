@@ -95,14 +95,18 @@ def generate_html(config_file):
     qr_height = config['ysize']
     logo_size = (config['logox'], config['logoy'])  # Get logo dimensions from config
     
-    # Calculate grid dimensions for A4 page (210mm × 297mm)
-    # Convert mm to pixels (assuming 96 DPI - 1mm ≈ 3.78 pixels)
-    page_width_px = int(210 * 3.78)  # A4 width in pixels
-    page_height_px = int(297 * 3.78)  # A4 height in pixels
+    # Calculate dimensions for A4 page with printing margins
+    mm_to_px = 3.78  # 1mm ≈ 3.78 pixels at 96 DPI
+    print_margin_mm = 6  # Safe printing margin
     
-    # Calculate grid dimensions
-    cols = math.floor((page_width_px - 20) / qr_width)  # Subtract padding
-    rows = math.floor((page_height_px - 20) / qr_height)  # Subtract padding
+    # Calculate available space
+    available_width = int((210 - 2 * print_margin_mm) * mm_to_px)
+    available_height = int((297 - 2 * print_margin_mm) * mm_to_px)
+    
+    # Calculate cell dimensions
+    cell_height = qr_height + 20  # QR height + space for title
+    cols = math.floor(available_width / qr_width)
+    max_rows_per_page = math.floor(available_height / cell_height)
     
     # Download and process logo
     logo_image = download_image(config['logo'])
@@ -117,12 +121,6 @@ def generate_html(config_file):
         qr_codes.append(qr_base64)
         names.append(item['name'])
     
-    # Calculate how many QR codes can fit on one page
-    qr_codes_per_page = rows * cols
-    
-    # Calculate total pages needed
-    total_pages = math.ceil(len(qr_codes) / qr_codes_per_page)
-    
     # Generate HTML with multiple A4 pages
     html = """
     <!DOCTYPE html>
@@ -131,28 +129,32 @@ def generate_html(config_file):
         <style>
             @page {
                 size: A4;
-                margin: 0;
             }
             body {
                 margin: 0;
                 padding: 0;
             }
             .page {
-                width: 210mm;
-                height: 297mm;
-                padding: 1mm;
-                box-sizing: border-box;
+                width: 200mm;  /* A4 width - margins */
+                height: 287mm; /* A4 height - margins */
                 background: white;
                 page-break-after: always;
+                display: flex;
+                justify-content: center;
+                align-items: flex-start;  /* Align to top */
             }
             .page:last-child {
                 page-break-after: auto;
             }
+            .table-container {
+                width: 100%;
+                display: flex;
+                justify-content: center;
+            }
             table {
                 border-collapse: collapse;
-                width: calc(100% - 20px);
-                height: calc(100% - 20px);
-                margin: 10px;
+                margin: 0;
+                width: fit-content;
             }
             td {
                 border: 1px solid #ddd;
@@ -160,19 +162,27 @@ def generate_html(config_file):
                 text-align: center;
                 vertical-align: middle;
                 width: {qr_width}px;
-                height: calc({qr_height}px + 20px);
+                height: {cell_height}px;
+                position: relative;
+            }
+            .qr-container {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                height: 100%;
+                width: {qr_width}px;
+                margin: 0 auto;
             }
             .title {
                 font-size: 12px;
-                margin-top: 5px;
+                margin: 2px 0;
                 display: block;
             }
             img {
                 width: {qr_width}px !important;
                 height: {qr_height}px !important;
                 display: block;
-                margin: 0;
-                padding: 0;
             }
             @media print {
                 .page {
@@ -191,27 +201,32 @@ def generate_html(config_file):
     """
     
     # Generate pages
-    for page in range(total_pages):
-        html += '<div class="page"><table>'
-        start_index = page * qr_codes_per_page
+    current_index = 0
+    while current_index < len(qr_codes):
+        html += '<div class="page"><div class="table-container">'
+        html += '<table>'
         
-        # Add QR codes to table for this page
-        for i in range(rows):
+        # Always create full grid for consistency
+        for i in range(max_rows_per_page):
             html += "<tr>"
+            
             for j in range(cols):
-                qr_index = start_index + (i * cols + j)
-                if qr_index < len(qr_codes):
+                if current_index < len(qr_codes):
                     html += f"""
                         <td>
-                            <span class="title">{names[qr_index]}</span>
-                            <img src="data:image/png;base64,{qr_codes[qr_index]}" alt="QR Code" width="{qr_width}" height="{qr_height}">
+                            <div class="qr-container">
+                                <span class="title">{names[current_index]}</span>
+                                <img src="data:image/png;base64,{qr_codes[current_index]}" alt="QR Code" width="{qr_width}" height="{qr_height}">
+                            </div>
                         </td>
                     """
+                    current_index += 1
                 else:
-                    html += f'<td style="width:{qr_width}px;height:{qr_height}px"></td>'
+                    html += f'<td style="width:{qr_width}px;height:{cell_height}px"></td>'
+            
             html += "</tr>"
         
-        html += "</table></div>"
+        html += "</table></div></div>"
     
     html += """
     </body>
